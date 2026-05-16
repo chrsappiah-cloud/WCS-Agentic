@@ -2,18 +2,17 @@
 //  WCS_AgenticTests.swift
 //  WCS-AgenticTests
 //
-//  Created by Christopher Appiah-Thompson  on 16/5/2026.
-//
 
+import Foundation
 import Testing
 @testable import WCS_Agentic
 
 struct WCS_AgenticTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-        // Swift Testing Documentation
-        // https://developer.apple.com/documentation/testing
+    @Test func middlewareDoesNotStripMethod() async throws {
+        let m = LoggingHTTPMiddleware(label: "t")
+        var r = URLRequest(url: URL(string: "https://example.com")!)
+        r.httpMethod = "POST"
+        let o = m.prepare(r)
+        #expect(o.httpMethod == "POST")
     }
-
 }

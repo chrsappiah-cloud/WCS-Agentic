@@ -2,42 +2,50 @@
 //  WCS_AgenticUITests.swift
 //  WCS-AgenticUITests
 //
-//  Created by Christopher Appiah-Thompson  on 16/5/2026.
-//
 
 import XCTest
 
 final class WCS_AgenticUITests: XCTestCase {
+    private var app: XCUIApplication!
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        app = XCUIApplication()
+        app.launchArguments = ["--uitesting"]
+        app.launch()
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
-        app.launch()
+    func testProgramsTabAndHealthUX() throws {
+        let programs = app.tabBars.buttons["Programs"]
+        XCTAssertTrue(programs.waitForExistence(timeout: 8))
+        programs.tap()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        let refresh = app.buttons["Refresh API"]
+        XCTAssertTrue(refresh.waitForExistence(timeout: 5))
+        refresh.tap()
+
+        let enroll = app.buttons["Enroll sample"]
+        XCTAssertTrue(enroll.waitForExistence(timeout: 5))
+        enroll.tap()
+
+        let apiTab = app.tabBars.buttons["API"]
+        XCTAssertTrue(apiTab.waitForExistence(timeout: 5))
+        apiTab.tap()
+
+        let ping = app.buttons["Ping"]
+        XCTAssertTrue(ping.waitForExistence(timeout: 5))
+        ping.tap()
+
+        XCTAssertTrue(app.staticTexts["ok"].waitForExistence(timeout: 8))
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let a = XCUIApplication()
+            a.launchArguments = ["--uitesting"]
+            a.launch()
         }
     }
 }

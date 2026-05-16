@@ -1,0 +1,31 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (WCS-Agentic)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run tests
+        env:
+          SKIP_UI_TESTS: "1"
+          WCS_SERIAL_TESTS: "1"
+        run: |
+          chmod +x scripts/run-ios-tests.sh
+          ./scripts/run-ios-tests.sh

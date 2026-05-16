@@ -1,0 +1,22 @@
+.venv/
+output/
+.DS_Store
+*.xcuserstate
+xcuserdata/
+
+# IDE
+.idea/
+
+# SwiftPM / build artifacts
+**/.build/
+.build/
+implementation-pack/.build/
+.swiftpm/
+
+# Xcode
+DerivedData/
+*.xcresult
+
+# Local env
+.env
+.env.*

@@ -2,31 +2,34 @@
 //  WCS_AgenticApp.swift
 //  WCS-Agentic
 //
-//  Created by Christopher Appiah-Thompson  on 16/5/2026.
-//
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct WCS_AgenticApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    private let sharedModelContainer: ModelContainer
+    private let api: APIServing
 
+    init() {
+        let schema = Schema([ParticipantRecord.self])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+        if ProcessInfo.processInfo.arguments.contains("--uitesting") {
+            api = MockBackendClient()
+        } else {
+            api = VaporBackendClient()
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(api: api)
+                .modelContainer(sharedModelContainer)
         }
-        .modelContainer(sharedModelContainer)
     }
 }
