@@ -1,62 +1,74 @@
 # TestFlight release checklist — WCS-Agentic
 
+**Canonical TestFlight folder:** [`testflight/`](../testflight/) (export plist, QA checklist, build history)
+
 **App Store Connect:** [TestFlight for WCS-Agentic](https://appstoreconnect.apple.com/teams/70c46c69-5d6d-438d-b300-31df2b93163a/apps/6769985809/testflight)  
 **Apple App ID:** `6769985809` · **Bundle ID:** `wcs.WCS-Agentic` · **Team:** `TM2WG7HH96`
 
-## App Store Connect (one-time)
-
-1. Create app **WCS-Agentic** with bundle ID `wcs.WCS-Agentic` (team `TM2WG7HH96`).
-2. Enable **In-App Purchases** for the bundle ID.
-3. Create subscription product **`wcs.agentic.pro.monthly`** (auto-renewable, group “WCS Agentic Pro”).
-4. Add a **1-week free trial** introductory offer (optional; mirrored in `Configuration/Products.storekit` for local testing).
-
-## Local subscription testing
-
-- Scheme **WCS-Agentic** uses `WCS-Agentic/Configuration/Products.storekit` (StoreKit Testing).
-- Run on simulator → **Account** tab → **Load subscription product** → **Subscribe to Pro (sandbox)**.
-
-## Sandbox testers (TestFlight)
-
-1. App Store Connect → **Users and Access** → **Sandbox** → create tester Apple IDs.
-2. On device: Settings → App Store → Sandbox Account → sign in with sandbox tester.
-3. Install build from TestFlight; purchases use sandbox billing (no real charges).
-
-## Build & upload
+## Release pipeline
 
 ```bash
 cd /Applications/WCS-Agentic
-./scripts/prepare-testflight.sh
+./scripts/validate-testflight.sh    # entitlements, StoreKit, version
+./scripts/run-all-tests.sh          # iOS + Vapor + orchestrator + Python
+./scripts/prepare-testflight.sh     # archive + upload (or --archive-only)
 ```
 
-If CLI export fails with *Error Downloading App Information*, upload from Xcode:
+See [testflight/QA_CHECKLIST.md](../testflight/QA_CHECKLIST.md) for per-build QA and [testflight/BUILD_HISTORY.md](../testflight/BUILD_HISTORY.md) for upload log.
 
-1. Open **Window → Organizer → Archives** (archive is at `build/WCS-Agentic.xcarchive` after a successful archive).
-2. **Distribute App** → **App Store Connect** → **Upload**.
-3. Wait for processing, then enable **TestFlight** internal/external testing.
+## App Store Connect (one-time)
 
-## Roles for QA
+1. App **WCS-Agentic** with bundle ID `wcs.WCS-Agentic` (team `TM2WG7HH96`).
+2. **In-App Purchases** enabled for the bundle ID.
+3. Subscription **`wcs.agentic.pro.monthly`** (auto-renewable, group “WCS Agentic Pro”).
+4. Optional **1-week free trial** (mirrored in `WCS-Agentic/Configuration/Products.storekit`).
+
+## Local subscription testing
+
+- Scheme **WCS-Agentic** → `Configuration/Products.storekit`
+- Simulator → **Account** → Load product → Subscribe (sandbox)
+
+## Sandbox testers
+
+1. ASC → **Users and Access** → **Sandbox** → create testers.
+2. Device → Settings → App Store → Sandbox Account.
+3. Install from TestFlight; IAP uses sandbox billing.
+
+## Manual upload (if CLI fails)
+
+1. Archive: `./scripts/prepare-testflight.sh --archive-only`
+2. Xcode → **Window → Organizer → Archives** → `build/WCS-Agentic.xcarchive`
+3. **Distribute App** → **App Store Connect** → **Upload**
+
+Export options: [testflight/ExportOptions.plist](../testflight/ExportOptions.plist)
+
+## QA accounts
 
 | Account | Email | Role | Subscription |
 |---------|-------|------|----------------|
 | Admin | `admin@worldclassscholars.test` | Admin | Pro (seeded) |
-| Operator | `operator@worldclassscholars.test` | Operator | Free (grant Pro in Admin or IAP) |
+| Operator | `operator@worldclassscholars.test` | Operator | Grant Pro in Admin or IAP |
 | Demo user | `demo@worldclassscholars.test` | User | Free |
 
-Use **Account → Quick sign-in (demo admin)** for internal QA, or sign in with any email to create a user row.
+**Account → Quick sign-in (demo admin)** for internal QA.
 
-## What to verify on TestFlight
+## What to verify (summary)
 
-- **Programs**: enroll sample participant; submit mock identity document (Vapor API).
-- **Agents**: start **onboarding**, **certificate**, or **concierge** orchestrator workflow (requires platform at `WCSOrchestratorBaseURL` for live runs; mocks work offline in UI tests only).
-- **Approvals**: approve/deny queued orchestrator items (pair with `docker compose up` in `platform/` for full E2E on LAN).
-- **Monitor**: Vapor + orchestrator health; platform audit sync.
-- **Account**: StoreKit purchase + restore.
-- **Admin**: kill-switch toggle, role/tier/access changes.
+- **Programs** — enroll, mock ID upload (Vapor)
+- **Agents** — onboarding / certificate / concierge (orchestrator; LAN optional)
+- **Approvals** — queue approve/deny
+- **Monitor** — dual API health + audit
+- **Account** — StoreKit purchase + restore
+- **Admin** — kill-switch, roles, tiers
 
-### LAN E2E (optional, same Wi‑Fi as Mac)
+### LAN E2E (optional)
 
 ```bash
 cd platform && docker compose up --build
 ```
 
-Point device `WCSAPIBaseURL` / `WCSOrchestratorBaseURL` to your Mac’s LAN IP (e.g. `http://192.168.1.x:8080` and `:3000`).
+Set device `WCSAPIBaseURL` / `WCSOrchestratorBaseURL` to Mac LAN IP (`:8080` / `:3000`).
+
+## Entitlements
+
+Production entitlements: **push only** (`aps-environment` = `production`). Do not add unused CloudKit/iCloud keys — they break ASC upload.

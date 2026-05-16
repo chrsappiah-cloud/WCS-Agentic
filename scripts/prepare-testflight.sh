@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Archive WCS-Agentic for TestFlight upload via Xcode Organizer or altool.
+# Archive WCS-Agentic and upload to App Store Connect (TestFlight).
 #
 # Prerequisites:
 #   - Xcode signed in with Apple ID (team TM2WG7HH96)
-#   - App record + IAP product `wcs.agentic.pro.monthly` in App Store Connect
-#   - In-App Purchase capability enabled for bundle id wcs.WCS-Agentic
+#   - App record + IAP `wcs.agentic.pro.monthly` in App Store Connect
 #
 # Usage:
-#   ./scripts/prepare-testflight.sh
-#   open build/export  # after successful export
+#   ./scripts/prepare-testflight.sh              # tests + archive + upload
+#   ./scripts/prepare-testflight.sh --skip-tests
+#   ./scripts/prepare-testflight.sh --archive-only
 
 set -euo pipefail
 
@@ -18,47 +18,71 @@ cd "$ROOT"
 SCHEME="WCS-Agentic"
 ARCHIVE_PATH="$ROOT/build/WCS-Agentic.xcarchive"
 EXPORT_PATH="$ROOT/build/TestFlightExport"
-EXPORT_PLIST="$ROOT/scripts/ExportOptions.plist"
+EXPORT_PLIST="$ROOT/testflight/ExportOptions.plist"
+SKIP_TESTS=0
+ARCHIVE_ONLY=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --skip-tests) SKIP_TESTS=1 ;;
+    --archive-only) ARCHIVE_ONLY=1 ;;
+    -h|--help)
+      echo "Usage: $0 [--skip-tests] [--archive-only]"
+      exit 0
+      ;;
+    *) echo "Unknown option: $arg" >&2; exit 1 ;;
+  esac
+done
+
+[[ -f "$EXPORT_PLIST" ]] || { echo "Missing $EXPORT_PLIST" >&2; exit 1; }
+
+if [[ "$SKIP_TESTS" -eq 0 ]]; then
+  echo "==> Preflight"
+  chmod +x scripts/validate-testflight.sh scripts/run-all-tests.sh
+  ./scripts/validate-testflight.sh
+  echo "==> Running all unit tests"
+  ./scripts/run-all-tests.sh
+fi
 
 mkdir -p build
 
-echo "==> Archiving $SCHEME (Release, generic iOS)…"
+MARKETING=$(grep -m1 'MARKETING_VERSION' WCS-Agentic.xcodeproj/project.pbxproj | sed 's/.*= \(.*\);/\1/')
+BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION' WCS-Agentic.xcodeproj/project.pbxproj | sed 's/.*= \(.*\);/\1/')
+echo "==> Archiving $SCHEME $MARKETING ($BUILD) Release…"
+
 xcodebuild \
   -scheme "$SCHEME" \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE_PATH" \
+  -allowProvisioningUpdates \
   archive
 
-if [[ ! -f "$EXPORT_PLIST" ]]; then
-  cat > "$EXPORT_PLIST" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>method</key>
-	<string>app-store-connect</string>
-	<key>destination</key>
-	<string>upload</string>
-	<key>signingStyle</key>
-	<string>automatic</string>
-	<key>uploadSymbols</key>
-	<true/>
-</dict>
-</plist>
-PLIST
+if [[ "$ARCHIVE_ONLY" -eq 1 ]]; then
+  echo ""
+  echo "Archive only: $ARCHIVE_PATH"
+  echo "Upload manually via Xcode Organizer or re-run without --archive-only"
+  exit 0
 fi
 
-echo "==> Exporting for App Store Connect…"
+echo "==> Exporting and uploading to App Store Connect…"
 rm -rf "$EXPORT_PATH"
 xcodebuild -exportArchive \
   -archivePath "$ARCHIVE_PATH" \
   -exportPath "$EXPORT_PATH" \
-  -exportOptionsPlist "$EXPORT_PLIST"
+  -exportOptionsPlist "$EXPORT_PLIST" \
+  -allowProvisioningUpdates
 
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "local")
+DATE=$(date +%Y-%m-%d)
 echo ""
-echo "Archive: $ARCHIVE_PATH"
-echo "Export:  $EXPORT_PATH"
+echo "==> Upload complete"
+echo "    Version: $MARKETING ($BUILD)"
+echo "    Archive: $ARCHIVE_PATH"
+echo "    Export:  $EXPORT_PATH"
+echo "    Commit:  $COMMIT"
 echo ""
-echo "Next: open Xcode → Window → Organizer → Archives, or upload the .ipa from $EXPORT_PATH"
-echo "Enable Sandbox testers in App Store Connect → TestFlight for subscription testing."
+echo "Next: App Store Connect → TestFlight → enable testing when processing finishes."
+echo "      https://appstoreconnect.apple.com/teams/70c46c69-5d6d-438d-b300-31df2b93163a/apps/6769985809/testflight"
+echo ""
+echo "Update testflight/BUILD_HISTORY.md with build $BUILD ($DATE, $COMMIT)."

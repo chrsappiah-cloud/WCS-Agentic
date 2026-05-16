@@ -43,4 +43,9 @@ Board-ready PDFs (operating manual + Swift sources): [`docs/pdf/`](docs/pdf/)
 
 ## TestFlight
 
-See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md) — App ID `6769985809`.
+```bash
+./scripts/validate-testflight.sh
+./scripts/prepare-testflight.sh
+```
+
+See [testflight/](testflight/) and [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md) — App ID `6769985809`.
