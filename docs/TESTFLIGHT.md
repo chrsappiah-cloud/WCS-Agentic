@@ -46,7 +46,17 @@ Use **Account → Quick sign-in (demo admin)** for internal QA, or sign in with 
 
 ## What to verify on TestFlight
 
-- **Agents**: run a supervised workflow with Pro/Operator access.
-- **Monitor**: API health + event stream after agent runs.
+- **Programs**: enroll sample participant; submit mock identity document (Vapor API).
+- **Agents**: start **onboarding**, **certificate**, or **concierge** orchestrator workflow (requires platform at `WCSOrchestratorBaseURL` for live runs; mocks work offline in UI tests only).
+- **Approvals**: approve/deny queued orchestrator items (pair with `docker compose up` in `platform/` for full E2E on LAN).
+- **Monitor**: Vapor + orchestrator health; platform audit sync.
 - **Account**: StoreKit purchase + restore.
-- **Admin**: change role, subscription tier, and access enabled flag.
+- **Admin**: kill-switch toggle, role/tier/access changes.
+
+### LAN E2E (optional, same Wi‑Fi as Mac)
+
+```bash
+cd platform && docker compose up --build
+```
+
+Point device `WCSAPIBaseURL` / `WCSOrchestratorBaseURL` to your Mac’s LAN IP (e.g. `http://192.168.1.x:8080` and `:3000`).

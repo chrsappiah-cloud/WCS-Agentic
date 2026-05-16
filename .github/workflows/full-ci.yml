@@ -1,0 +1,67 @@
+name: Full CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: full-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: iOS build & test
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - name: Run iOS tests
+        env:
+          SKIP_UI_TESTS: "1"
+          WCS_SERIAL_TESTS: "1"
+        run: |
+          chmod +x scripts/run-ios-tests.sh
+          ./scripts/run-ios-tests.sh
+
+  vapor:
+    name: Vapor API (swift test)
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: implementation-pack
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  orchestrator:
+    name: Node orchestrator
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/orchestrator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm test
+
+  python-worker:
+    name: Python onboarding worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/agents/onboarding-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -c "import app; assert app.app"

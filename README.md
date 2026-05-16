@@ -28,10 +28,10 @@ open WCS-Agentic.xcodeproj
 ## Tests
 
 ```bash
-SKIP_UI_TESTS=1 ./scripts/run-ios-tests.sh
-cd implementation-pack && swift test
-cd platform/orchestrator && npm test
+./scripts/run-all-tests.sh
 ```
+
+Runs iOS, Vapor (`implementation-pack`), Node orchestrator, and Python worker suites.
 
 ## PDF implementation pack
 
