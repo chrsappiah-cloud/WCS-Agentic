@@ -8,6 +8,8 @@
 	</array>
 	<key>WCSAPIBaseURL</key>
 	<string>http://127.0.0.1:8080</string>
+	<key>WCSSubscriptionProductID</key>
+	<string>wcs.agentic.pro.monthly</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

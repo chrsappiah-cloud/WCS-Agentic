@@ -8,11 +8,19 @@ import SwiftUI
 
 @main
 struct WCS_AgenticApp: App {
+    @StateObject private var session = SessionManager()
+    @StateObject private var subscription = SubscriptionManager()
+
     private let sharedModelContainer: ModelContainer
     private let api: APIServing
 
     init() {
-        let schema = Schema([ParticipantRecord.self])
+        let schema = Schema([
+            ParticipantRecord.self,
+            UserAccountRecord.self,
+            AgentRunRecord.self,
+            MonitoringEventRecord.self,
+        ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -28,8 +36,10 @@ struct WCS_AgenticApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(api: api)
+            AppShellView(api: api)
                 .modelContainer(sharedModelContainer)
+                .environmentObject(session)
+                .environmentObject(subscription)
         }
     }
 }

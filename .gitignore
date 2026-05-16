@@ -15,6 +15,7 @@ implementation-pack/.build/
 
 # Xcode
 DerivedData/
+build/
 *.xcresult
 
 # Local env

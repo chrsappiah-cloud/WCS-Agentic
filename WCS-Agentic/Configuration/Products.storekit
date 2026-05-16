@@ -1,0 +1,67 @@
+{
+  "identifier" : "WCS_Agentic_StoreKit",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "TM2WG7HH96",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 768384000,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "wcs-agentic-pro",
+      "localizations" : [
+
+      ],
+      "name" : "WCS Agentic Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "wcs-pro-monthly-internal",
+          "introductoryOffer" : {
+            "internalID" : "wcs-pro-trial",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Supervised agents, monitoring, and operator tools for World Class Scholars.",
+              "displayName" : "WCS Agentic Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "wcs.agentic.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "wcs-agentic-pro",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

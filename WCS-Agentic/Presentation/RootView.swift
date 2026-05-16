@@ -6,32 +6,6 @@
 import SwiftData
 import SwiftUI
 
-struct RootView: View {
-    @Environment(\.modelContext) private var modelContext
-    @StateObject private var programsVM: ProgramsViewModel
-
-    init(api: APIServing) {
-        _programsVM = StateObject(wrappedValue: ProgramsViewModel(api: api))
-    }
-
-    var body: some View {
-        TabView {
-            NavigationStack {
-                ProgramsHomeView(viewModel: programsVM, repository: WorkflowRepository(modelContext: modelContext))
-            }
-            .tabItem { Label("Programs", systemImage: "person.3.fill") }
-            .accessibilityIdentifier("tab.programs")
-
-            NavigationStack {
-                BackendStatusView(viewModel: programsVM, repository: WorkflowRepository(modelContext: modelContext))
-            }
-            .tabItem { Label("API", systemImage: "antenna.radiowaves.left.and.right") }
-            .accessibilityIdentifier("tab.api")
-        }
-        .tint(AgenticTheme.emerald)
-    }
-}
-
 struct ProgramsHomeView: View {
     @ObservedObject var viewModel: ProgramsViewModel
     let repository: WorkflowRepository
