@@ -19,4 +19,14 @@ struct MockBackendClient: APIServing {
         _ = fullName
         return nextParticipantID
     }
+
+    func uploadIdentity(participantID: UUID, documentURL: String) async throws {
+        _ = participantID
+        _ = documentURL
+    }
+
+    func approveWorkflow(workflowID: UUID, approvedBy: String) async throws {
+        _ = workflowID
+        _ = approvedBy
+    }
 }

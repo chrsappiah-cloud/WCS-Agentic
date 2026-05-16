@@ -8,22 +8,29 @@ import SwiftUI
 
 struct AgentsHubView: View {
     @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var workflows: WorkflowCoordinator
     @Environment(\.modelContext) private var modelContext
 
     @State private var selectedAgent: AgentKind = .onboarding
     @State private var promptText = ""
+    @State private var participantEmail = ""
+    @State private var documentHint = "passport"
+    @State private var selectedParticipantId: UUID?
+    @State private var courseId = "course-leadership"
     @State private var isRunning = false
     @State private var lastRunMessage: String?
     @State private var orchestrator: AgentOrchestrator?
 
     @Query(sort: \AgentRunRecord.createdAt, order: .reverse) private var runs: [AgentRunRecord]
+    @Query(sort: \WorkflowSessionRecord.createdAt, order: .reverse) private var platformSessions: [WorkflowSessionRecord]
+    @Query(sort: \ParticipantRecord.createdAt, order: .reverse) private var participants: [ParticipantRecord]
 
     var body: some View {
         List {
             Section {
                 AgenticHeroHeader(
                     title: "Agent Console",
-                    subtitle: "Supervised workflows with explicit gates—onboarding, support, certificates, and campaigns. Automation stops before irreversible actions."
+                    subtitle: "Production workflows via orchestrator (onboarding, certificate, concierge) plus supervised local drafts for support and campaigns."
                 )
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
                 .listRowSeparator(.hidden)
@@ -41,37 +48,33 @@ struct AgentsHubView: View {
                     message: "Pro/Trial subscription and Operator/Admin role are required to run agents."
                 )
             } else {
+                workflowFormSection
+            }
+
+            if !platformSessions.isEmpty {
                 Section {
-                    Picker("Agent", selection: $selectedAgent) {
-                        ForEach(AgentKind.allCases, id: \.self) { kind in
-                            Label(kind.rawValue, systemImage: kind.systemImage).tag(kind)
+                    ForEach(platformSessions.prefix(10), id: \.id) { s in
+                        GlassCard {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(s.workflowType.capitalized)
+                                        .font(.headline)
+                                    Spacer()
+                                    Text(s.status)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(AgenticTheme.emerald)
+                                }
+                                Text(s.summary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                    }
-                    .accessibilityIdentifier("agents.picker")
-
-                    Text(selectedAgent.description)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    TextField("Workflow prompt…", text: $promptText, axis: .vertical)
-                        .lineLimit(3 ... 8)
-                        .accessibilityIdentifier("agents.promptField")
-
-                    Button {
-                        Task { await runAgent() }
-                    } label: {
-                        Label(isRunning ? "Running…" : "Run supervised agent", systemImage: "play.circle.fill")
-                    }
-                    .disabled(isRunning || promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("agents.runButton")
-
-                    if let lastRunMessage {
-                        Text(lastRunMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
                 } header: {
-                    Text("Interact")
+                    Text("Platform sessions")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .textCase(nil)
@@ -101,7 +104,7 @@ struct AgentsHubView: View {
                                     Text(run.response)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                        .lineLimit(4)
+                                        .lineLimit(5)
                                 }
                             }
                         }
@@ -124,8 +127,100 @@ struct AgentsHubView: View {
         .onAppear {
             orchestrator = AgentOrchestrator(
                 monitoring: MonitoringRepository(modelContext: modelContext),
-                runs: AgentRunRepository(modelContext: modelContext)
+                runs: AgentRunRepository(modelContext: modelContext),
+                workflowCoordinator: workflows,
+                sessions: WorkflowSessionRepository(modelContext: modelContext)
             )
+            if participantEmail.isEmpty {
+                participantEmail = "pilot@worldclassscholars.test"
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var workflowFormSection: some View {
+        Section {
+            Picker("Agent", selection: $selectedAgent) {
+                ForEach(AgentKind.allCases, id: \.self) { kind in
+                    Label(kind.rawValue, systemImage: kind.systemImage).tag(kind)
+                }
+            }
+            .accessibilityIdentifier("agents.picker")
+
+            if selectedAgent.usesPlatformOrchestrator {
+                Label("Routed to platform orchestrator", systemImage: "network")
+                    .font(.caption)
+                    .foregroundStyle(AgenticTheme.emerald)
+            }
+
+            Text(selectedAgent.description)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            TextField("Participant email", text: $participantEmail)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .accessibilityIdentifier("agents.participantEmail")
+
+            if selectedAgent == .onboarding {
+                Picker("Document", selection: $documentHint) {
+                    Text("Passport").tag("passport")
+                    Text("National ID").tag("national_id")
+                }
+            }
+
+            if selectedAgent == .certificate || selectedAgent == .concierge {
+                Picker("Participant", selection: $selectedParticipantId) {
+                    Text("Select participant").tag(UUID?.none)
+                    ForEach(participants, id: \.id) { p in
+                        Text(p.fullName).tag(Optional(p.id))
+                    }
+                }
+            }
+
+            if selectedAgent == .certificate {
+                TextField("Course ID", text: $courseId)
+                    .accessibilityIdentifier("agents.courseId")
+            }
+
+            TextField("Notes / prompt…", text: $promptText, axis: .vertical)
+                .lineLimit(2 ... 6)
+                .accessibilityIdentifier("agents.promptField")
+
+            Button {
+                Task { await runAgent() }
+            } label: {
+                Label(isRunning ? "Running…" : runButtonTitle, systemImage: "play.circle.fill")
+            }
+            .disabled(isRunning || !canRun)
+            .accessibilityIdentifier("agents.runButton")
+
+            if let lastRunMessage {
+                Text(lastRunMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Production workflow")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(nil)
+        }
+    }
+
+    private var runButtonTitle: String {
+        selectedAgent.usesPlatformOrchestrator ? "Start orchestrator workflow" : "Run supervised agent"
+    }
+
+    private var canRun: Bool {
+        let emailOk = !participantEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        switch selectedAgent {
+        case .onboarding:
+            return emailOk
+        case .certificate, .concierge:
+            return selectedParticipantId != nil
+        case .support, .campaign:
+            return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
@@ -146,10 +241,25 @@ struct AgentsHubView: View {
         isRunning = true
         lastRunMessage = nil
         defer { isRunning = false }
+        let role = session.isAdmin ? "admin" : "operator"
+        let prompt = promptText.isEmpty ? "Start \(selectedAgent.rawValue) for \(participantEmail)" : promptText
         do {
-            _ = try await orchestrator.run(agent: selectedAgent, prompt: promptText, initiatedBy: email)
-            lastRunMessage = "Run completed — see Monitoring for audit events."
-            promptText = ""
+            _ = try await orchestrator.run(
+                agent: selectedAgent,
+                prompt: prompt,
+                participantEmail: participantEmail,
+                documentHint: documentHint,
+                participantId: selectedParticipantId,
+                courseId: courseId,
+                role: role,
+                initiatedBy: email
+            )
+            lastRunMessage = selectedAgent.usesPlatformOrchestrator
+                ? "Workflow started — check Approvals and Monitor."
+                : "Run completed — see Monitoring for audit events."
+            if selectedAgent.usesPlatformOrchestrator {
+                promptText = ""
+            }
         } catch {
             lastRunMessage = error.localizedDescription
         }

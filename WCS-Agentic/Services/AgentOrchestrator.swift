@@ -5,18 +5,36 @@
 
 import Foundation
 
-/// Supervised agent runner — produces bounded responses and audit-friendly status transitions.
+/// Supervised agent runner — production workflows via platform orchestrator when available.
 @MainActor
 final class AgentOrchestrator {
     private let monitoring: MonitoringRepository
     private let runs: AgentRunRepository
+    private let workflowCoordinator: WorkflowCoordinator
+    private let sessions: WorkflowSessionRepository
 
-    init(monitoring: MonitoringRepository, runs: AgentRunRepository) {
+    init(
+        monitoring: MonitoringRepository,
+        runs: AgentRunRepository,
+        workflowCoordinator: WorkflowCoordinator,
+        sessions: WorkflowSessionRepository
+    ) {
         self.monitoring = monitoring
         self.runs = runs
+        self.workflowCoordinator = workflowCoordinator
+        self.sessions = sessions
     }
 
-    func run(agent: AgentKind, prompt: String, initiatedBy: String) async throws -> AgentRunRecord {
+    func run(
+        agent: AgentKind,
+        prompt: String,
+        participantEmail: String,
+        documentHint: String,
+        participantId: UUID?,
+        courseId: String,
+        role: String,
+        initiatedBy: String
+    ) async throws -> AgentRunRecord {
         let run = AgentRunRecord(
             agentKind: agent,
             prompt: prompt,
@@ -26,13 +44,36 @@ final class AgentOrchestrator {
         try runs.insert(run)
         try monitoring.log(source: "Agent.\(agent.rawValue)", message: "Run started: \(prompt.prefix(80))", severity: .info)
 
-        try await Task.sleep(nanoseconds: 350_000_000)
+        if agent.usesPlatformOrchestrator {
+            let session = try await workflowCoordinator.startProductionWorkflow(
+                agent: agent,
+                participantEmail: participantEmail,
+                documentHint: documentHint,
+                participantId: participantId,
+                courseId: courseId,
+                role: role,
+                initiatedBy: initiatedBy,
+                sessions: sessions,
+                monitoring: monitoring
+            )
+            run.response = """
+            Production workflow started on orchestrator.
 
-        let response = supervisedResponse(agent: agent, prompt: prompt)
-        run.response = response
-        run.status = "completed"
+            Session: \(session.platformSessionId)
+            Status: \(session.status)
+            Type: \(session.workflowType)
+
+            Check Approvals for human gates and Monitor for platform audit events.
+            """
+            run.status = session.status.contains("awaiting") ? "awaiting_approval" : "completed"
+        } else {
+            try await Task.sleep(nanoseconds: 350_000_000)
+            run.response = supervisedResponse(agent: agent, prompt: prompt)
+            run.status = "completed"
+        }
+
         try runs.saveChanges()
-        try monitoring.log(source: "Agent.\(agent.rawValue)", message: "Run completed", severity: .info)
+        try monitoring.log(source: "Agent.\(agent.rawValue)", message: "Run \(run.status)", severity: .info)
         return run
     }
 

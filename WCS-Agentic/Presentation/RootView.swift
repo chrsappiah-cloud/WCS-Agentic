@@ -85,18 +85,32 @@ struct ProgramsHomeView: View {
                 .accessibilityIdentifier("toolbar.refreshHealth")
             }
             ToolbarItem(placement: .bottomBar) {
-                Button {
-                    Task {
-                        await viewModel.enrollSample(
-                            email: "sample@worldclassscholars.test",
-                            fullName: "Sample Scholar",
-                            repository: repository
-                        )
+                Menu {
+                    Button {
+                        Task {
+                            await viewModel.enrollSample(
+                                email: "sample@worldclassscholars.test",
+                                fullName: "Sample Scholar",
+                                repository: repository
+                            )
+                        }
+                    } label: {
+                        Label("Enroll via Vapor API", systemImage: "person.badge.plus")
+                    }
+                    Button {
+                        Task {
+                            await viewModel.submitIdentity(
+                                participantID: participants.first?.id,
+                                repository: repository
+                            )
+                        }
+                    } label: {
+                        Label("Submit mock ID document", systemImage: "doc.badge.plus")
                     }
                 } label: {
-                    Label("Enroll sample", systemImage: "person.badge.plus")
+                    Label("Actions", systemImage: "ellipsis.circle")
                 }
-                .accessibilityIdentifier("toolbar.enrollSample")
+                .accessibilityIdentifier("toolbar.programActions")
             }
         }
         .overlay(alignment: .top) {
@@ -174,7 +188,7 @@ struct BackendStatusView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Label("Operator notes", systemImage: "doc.text")
                             .font(.headline)
-                        Text("Set `WCSAPIBaseURL` in Info.plist for your Vapor service. `--uitesting` uses MockBackendClient.")
+                        Text("Set `WCSAPIBaseURL` (Vapor, :8080) and `WCSOrchestratorBaseURL` (:3000) in Info.plist. `--uitesting` uses mocks.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

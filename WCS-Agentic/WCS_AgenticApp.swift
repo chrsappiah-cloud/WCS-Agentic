@@ -10,6 +10,7 @@ import SwiftUI
 struct WCS_AgenticApp: App {
     @StateObject private var session = SessionManager()
     @StateObject private var subscription = SubscriptionManager()
+    @StateObject private var workflows: WorkflowCoordinator
 
     private let sharedModelContainer: ModelContainer
     private let api: APIServing
@@ -20,6 +21,7 @@ struct WCS_AgenticApp: App {
             UserAccountRecord.self,
             AgentRunRecord.self,
             MonitoringEventRecord.self,
+            WorkflowSessionRecord.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -29,8 +31,10 @@ struct WCS_AgenticApp: App {
         }
         if ProcessInfo.processInfo.arguments.contains("--uitesting") {
             api = MockBackendClient()
+            _workflows = StateObject(wrappedValue: WorkflowCoordinator(platform: MockPlatformOrchestratorClient()))
         } else {
             api = VaporBackendClient()
+            _workflows = StateObject(wrappedValue: WorkflowCoordinator(platform: PlatformOrchestratorClient()))
         }
     }
 
@@ -40,6 +44,7 @@ struct WCS_AgenticApp: App {
                 .modelContainer(sharedModelContainer)
                 .environmentObject(session)
                 .environmentObject(subscription)
+                .environmentObject(workflows)
         }
     }
 }

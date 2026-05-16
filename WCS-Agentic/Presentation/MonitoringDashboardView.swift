@@ -8,6 +8,7 @@ import SwiftUI
 
 struct MonitoringDashboardView: View {
     @ObservedObject var programsVM: ProgramsViewModel
+    @EnvironmentObject private var workflows: WorkflowCoordinator
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \MonitoringEventRecord.createdAt, order: .reverse) private var events: [MonitoringEventRecord]
@@ -26,22 +27,65 @@ struct MonitoringDashboardView: View {
 
             Section {
                 GlassCard {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("API health").font(.headline)
-                            HealthStatusPill(text: programsVM.lastHealth)
-                                .accessibilityIdentifier("monitor.apiHealth")
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Vapor API").font(.headline)
+                                HealthStatusPill(text: programsVM.lastHealth)
+                                    .accessibilityIdentifier("monitor.apiHealth")
+                            }
+                            Spacer()
+                            Button("Refresh") {
+                                Task { await programsVM.refreshHealth() }
+                            }
+                            .accessibilityIdentifier("monitor.refreshHealth")
                         }
-                        Spacer()
-                        Button("Refresh") {
-                            Task { await programsVM.refreshHealth() }
+                        Divider()
+                        HStack {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Orchestrator").font(.headline)
+                                HealthStatusPill(text: workflows.orchestratorHealth)
+                                    .accessibilityIdentifier("monitor.orchestratorHealth")
+                            }
+                            Spacer()
+                            if workflows.killSwitchActive {
+                                Text("KILL")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.red)
+                            }
                         }
-                        .accessibilityIdentifier("monitor.refreshHealth")
+                        Button("Sync platform audit") {
+                            Task {
+                                await workflows.refreshPlatformStatus()
+                                await workflows.refreshAudit()
+                            }
+                        }
+                        .font(.footnote)
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
+            }
+
+            if !workflows.auditEvents.isEmpty {
+                Section {
+                    ForEach(workflows.auditEvents.prefix(15)) { event in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(event.type)
+                                .font(.caption.weight(.semibold))
+                            Text("Session \(event.sessionId.prefix(8))… · \(event.at)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                } header: {
+                    Text("Platform audit (recent)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                }
             }
 
             Section {
@@ -101,6 +145,8 @@ struct MonitoringDashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .task {
             await programsVM.refreshHealth()
+            await workflows.refreshPlatformStatus()
+            await workflows.refreshAudit()
             try? MonitoringRepository(modelContext: modelContext).log(
                 source: "Monitoring",
                 message: "Dashboard opened — API health: \(programsVM.lastHealth)",

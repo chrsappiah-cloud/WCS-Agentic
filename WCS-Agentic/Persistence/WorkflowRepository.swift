@@ -27,6 +27,13 @@ final class WorkflowRepository {
         try modelContext.save()
     }
 
+    func updateStatus(id: UUID, status: String) throws {
+        let fd = FetchDescriptor<ParticipantRecord>(predicate: #Predicate { $0.id == id })
+        guard let existing = try modelContext.fetch(fd).first else { return }
+        existing.status = status
+        try modelContext.save()
+    }
+
     func localParticipants() throws -> [ParticipantRecord] {
         try modelContext.fetch(FetchDescriptor<ParticipantRecord>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))
     }

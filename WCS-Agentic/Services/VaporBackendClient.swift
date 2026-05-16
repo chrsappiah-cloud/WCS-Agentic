@@ -54,4 +54,36 @@ struct VaporBackendClient: APIServing {
         guard let id = row.id else { throw APIError.decoding }
         return id
     }
+
+    func uploadIdentity(participantID: UUID, documentURL: String) async throws {
+        let url = baseURL.appendingPathComponent("identity/upload")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: String] = [
+            "participantID": participantID.uuidString,
+            "documentURL": documentURL,
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (_, response) = try await http.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
+            throw APIError.badStatus((response as? HTTPURLResponse)?.statusCode ?? -1)
+        }
+    }
+
+    func approveWorkflow(workflowID: UUID, approvedBy: String) async throws {
+        let url = baseURL.appendingPathComponent("workflows/approve")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: String] = [
+            "workflowID": workflowID.uuidString,
+            "approvedBy": approvedBy,
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (_, response) = try await http.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
+            throw APIError.badStatus((response as? HTTPURLResponse)?.statusCode ?? -1)
+        }
+    }
 }

@@ -9,6 +9,7 @@ import SwiftUI
 struct AdminPanelView: View {
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var subscription: SubscriptionManager
+    @EnvironmentObject private var workflows: WorkflowCoordinator
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \UserAccountRecord.createdAt, order: .reverse) private var users: [UserAccountRecord]
@@ -75,6 +76,36 @@ struct AdminPanelView: View {
                     }
                 } header: {
                     Text("Users & payments")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                }
+
+                Section {
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Platform kill-switch")
+                                .font(.headline)
+                            Text("Stops new orchestrator workflows globally. Use during incidents.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Toggle(
+                                "Kill-switch active",
+                                isOn: Binding(
+                                    get: { workflows.killSwitchActive },
+                                    set: { newValue in
+                                        Task { await workflows.setKillSwitch(newValue) }
+                                    }
+                                )
+                            )
+                            .accessibilityIdentifier("admin.killSwitch")
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                } header: {
+                    Text("Governance")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .textCase(nil)

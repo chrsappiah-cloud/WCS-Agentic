@@ -33,6 +33,14 @@ cd implementation-pack && swift test
 cd platform/orchestrator && npm test
 ```
 
+## PDF implementation pack
+
+Board-ready PDFs (operating manual + Swift sources): [`docs/pdf/`](docs/pdf/)
+
+```bash
+.venv-pdf/bin/python scripts/generate_implementation_pack_pdf.py
+```
+
 ## TestFlight
 
 See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md) — App ID `6769985809`.

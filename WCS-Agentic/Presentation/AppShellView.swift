@@ -37,6 +37,12 @@ struct AppShellView: View {
             .accessibilityIdentifier("tab.agents")
 
             NavigationStack {
+                ApprovalsQueueView()
+            }
+            .tabItem { Label("Approvals", systemImage: "checkmark.circle") }
+            .accessibilityIdentifier("tab.approvals")
+
+            NavigationStack {
                 MonitoringDashboardView(programsVM: programsVM)
             }
             .tabItem { Label("Monitor", systemImage: "chart.xyaxis.line") }

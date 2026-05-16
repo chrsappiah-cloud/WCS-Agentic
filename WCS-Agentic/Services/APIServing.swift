@@ -9,6 +9,8 @@ import Foundation
 protocol APIServing: Sendable {
     func health() async throws -> String
     func createParticipant(email: String, fullName: String) async throws -> UUID
+    func uploadIdentity(participantID: UUID, documentURL: String) async throws
+    func approveWorkflow(workflowID: UUID, approvedBy: String) async throws
 }
 
 enum APIError: Error, Equatable {
