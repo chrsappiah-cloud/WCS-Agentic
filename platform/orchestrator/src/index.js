@@ -5,6 +5,8 @@ import express from "express";
 import { randomUUID } from "crypto";
 import { createWorkflowStore } from "./store.js";
 import { runOnboardingWorkflow } from "./workflows/onboarding.js";
+import { runCertificateWorkflow } from "./workflows/certificate.js";
+import { runConciergeWorkflow } from "./workflows/concierge.js";
 
 const app = express();
 app.use(express.json());
@@ -81,6 +83,35 @@ app.post("/v1/workflows/onboarding/start", async (req, res) => {
     workerUrl: WORKER_URL,
     input: req.body,
   }).catch((err) => {
+    store.failSession(sessionId, err.message);
+    store.audit(sessionId, "workflow_failed", { error: String(err) });
+  });
+});
+
+app.post("/v1/workflows/certificate/start", async (req, res) => {
+  if (killSwitch) return res.status(503).json({ error: "kill_switch_active" });
+  const sessionId = randomUUID();
+  store.createSession(sessionId, "certificate", {
+    maxTokens: MAX_TOKENS_PER_SESSION,
+    participantId: req.body?.participantId,
+    courseId: req.body?.courseId,
+  });
+  res.status(202).json({ sessionId, status: "started" });
+  runCertificateWorkflow({ store, sessionId, input: req.body }).catch((err) => {
+    store.failSession(sessionId, err.message);
+    store.audit(sessionId, "workflow_failed", { error: String(err) });
+  });
+});
+
+app.post("/v1/workflows/concierge/start", async (req, res) => {
+  if (killSwitch) return res.status(503).json({ error: "kill_switch_active" });
+  const sessionId = randomUUID();
+  store.createSession(sessionId, "concierge", {
+    maxTokens: 800,
+    participantId: req.body?.participantId,
+  });
+  res.status(202).json({ sessionId, status: "started" });
+  runConciergeWorkflow({ store, sessionId, input: req.body }).catch((err) => {
     store.failSession(sessionId, err.message);
     store.audit(sessionId, "workflow_failed", { error: String(err) });
   });

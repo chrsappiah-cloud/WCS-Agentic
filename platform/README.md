@@ -17,15 +17,28 @@ docker compose up --build
 | Governance UI | http://localhost:5173 |
 | OPA | http://localhost:8181 |
 
-## Demo workflow
+## Workflows
+
+| Workflow | Endpoint | Implementation |
+|----------|----------|----------------|
+| Participant onboarding | `POST /v1/workflows/onboarding/start` | Full (worker + approval) |
+| Certificate operations | `POST /v1/workflows/certificate/start` | Stub (dual-control queue) |
+| Learning-path concierge | `POST /v1/workflows/concierge/start` | Stub (recommendations only) |
+| Research & campaign | — | Spec in production manual |
+
+See [`docs/production-operating-manual/`](../docs/production-operating-manual/).
+
+## Demo
 
 ```bash
-# Start onboarding workflow
 curl -s -X POST http://localhost:3000/v1/workflows/onboarding/start \
   -H 'Content-Type: application/json' \
   -d '{"participantEmail":"pilot@worldclassscholars.test","documentHint":"passport"}' | jq
 
-# List pending approvals (governance UI uses same API)
+curl -s -X POST http://localhost:3000/v1/workflows/certificate/start \
+  -H 'Content-Type: application/json' \
+  -d '{"participantId":"00000000-0000-0000-0000-000000000001","courseId":"course-leadership"}' | jq
+
 curl -s http://localhost:3000/v1/approvals | jq
 ```
 

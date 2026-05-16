@@ -14,3 +14,5 @@ Three modules: **Exploring → Implementing → Scaling**, with checklists, deci
 **Runnable scaffold:** [`platform/`](../../platform/) — orchestrator (Node), agent workers (Python), OPA policies, governance UI, Docker Compose, Terraform (AWS).
 
 **Mobile + API slice:** [`WCS-Agentic/`](../../WCS-Agentic/) iOS app + [`implementation-pack/`](../../implementation-pack/) Vapor API.
+
+**Production operating manual** (case-study workflows, control stack, four playbooks): [`../production-operating-manual/`](../production-operating-manual/).

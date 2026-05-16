@@ -10,6 +10,7 @@ World Class Scholars — agentic operations platform: **iOS client**, **Vapor AP
 | [`implementation-pack/`](implementation-pack/) | Vapor/Fluent API + Docker |
 | [`platform/`](platform/) | Orchestrator, workers, OPA policies, governance UI, Compose |
 | [`docs/playbook/`](docs/playbook/) | **Agentic AI Playbook** (Exploring → Implementing → Scaling) |
+| [`docs/production-operating-manual/`](docs/production-operating-manual/) | **Production manual** — case-study map + 4 workflow playbooks |
 | [`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md) | TestFlight upload checklist |
 
 ## Quick start (full stack)
