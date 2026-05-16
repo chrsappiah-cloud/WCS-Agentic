@@ -97,6 +97,7 @@ struct ProgramsHomeView: View {
                     } label: {
                         Label("Enroll via Vapor API", systemImage: "person.badge.plus")
                     }
+                    .accessibilityIdentifier("programs.enrollSample")
                     Button {
                         Task {
                             await viewModel.submitIdentity(
