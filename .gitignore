@@ -21,3 +21,5 @@ build/
 # Local env
 .env
 .env.*
+node_modules/
+platform/orchestrator/node_modules/

@@ -1,0 +1,56 @@
+services:
+  opa:
+    image: openpolicyagent/opa:latest
+    command: ["run", "--server", "/policies"]
+    volumes:
+      - ./governance/policies:/policies:ro
+    ports:
+      - "8181:8181"
+
+  api:
+    build: ../implementation-pack
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: wcs
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: wcs
+    ports:
+      - "5432:5432"
+
+  onboarding-worker:
+    build: ./agents/onboarding-worker
+    ports:
+      - "5001:5001"
+
+  orchestrator:
+    build: ./orchestrator
+    ports:
+      - "3000:3000"
+    environment:
+      OPA_URL: http://opa:8181
+      VAPOR_URL: http://api:8080
+      WORKER_URL: http://onboarding-worker:5001
+      WCS_AUTO_APPROVE: "0"
+      MAX_TOKENS_PER_SESSION: "8000"
+    depends_on:
+      - opa
+      - api
+      - onboarding-worker
+
+  governance-ui:
+    image: nginx:alpine
+    ports:
+      - "5173:80"
+    volumes:
+      - ./governance-ui:/usr/share/nginx/html:ro

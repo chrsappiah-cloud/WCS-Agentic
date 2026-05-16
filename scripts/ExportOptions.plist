@@ -8,7 +8,9 @@
 	<string>upload</string>
 	<key>signingStyle</key>
 	<string>automatic</string>
+	<key>teamID</key>
+	<string>TM2WG7HH96</string>
 	<key>uploadSymbols</key>
-	<true/>
+	<false/>
 </dict>
 </plist>

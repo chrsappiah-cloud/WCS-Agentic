@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WCS Governance — Approvals</title>
+  <style>
+    :root { --emerald:#178c73; --ink:#12151a; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin:0; background:#f4f6f8; color:var(--ink); }
+    header { background:linear-gradient(135deg,var(--emerald),#0d3d34); color:#fff; padding:1.5rem 2rem; }
+    main { max-width:960px; margin:1.5rem auto; padding:0 1rem; }
+    .card { background:#fff; border-radius:14px; padding:1rem 1.25rem; margin-bottom:1rem; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+    button { background:var(--emerald); color:#fff; border:0; padding:.5rem 1rem; border-radius:8px; cursor:pointer; margin-right:.5rem; }
+    button.deny { background:#c44; }
+    pre { background:#f0f2f5; padding:.75rem; border-radius:8px; overflow:auto; font-size:.85rem; }
+    .badge { display:inline-block; background:rgba(23,140,115,.15); color:var(--emerald); padding:.2rem .5rem; border-radius:6px; font-size:.75rem; font-weight:600; }
+    .item { border-top:1px solid #eee; padding:.75rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WCS Agentic Governance</h1>
+    <p>Approval queue · Audit viewer · Kill-switch</p>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Pending approvals</h2>
+      <div id="approvals">Loading…</div>
+    </div>
+    <div class="card">
+      <h2>Kill switch</h2>
+      <button onclick="setKill(true)">Enable</button>
+      <button class="deny" onclick="setKill(false)">Disable</button>
+      <span id="killStatus"></span>
+    </div>
+    <div class="card">
+      <h2>Recent audit</h2>
+      <pre id="audit"></pre>
+    </div>
+  </main>
+  <script>
+    const API = window.WCS_ORCHESTRATOR_URL || 'http://localhost:3000';
+    async function load() {
+      const [a, audit] = await Promise.all([
+        fetch(API + '/v1/approvals').then(r => r.json()),
+        fetch(API + '/v1/audit').then(r => r.json()),
+      ]);
+      const el = document.getElementById('approvals');
+      if (!a.items?.length) { el.innerHTML = '<p>No pending items.</p>'; }
+      else {
+        el.innerHTML = a.items.map(item => `
+          <div class="item">
+            <span class="badge">${item.payload?.type || 'approval'}</span>
+            <p><strong>${item.payload?.email || item.sessionId}</strong></p>
+            <pre>${JSON.stringify(item.payload, null, 2)}</pre>
+            <button onclick="approve('${item.id}')">Approve</button>
+            <button class="deny" onclick="deny('${item.id}')">Deny</button>
+          </div>
+        `).join('');
+      }
+      document.getElementById('audit').textContent = JSON.stringify(audit.events?.slice(-15) || [], null, 2);
+    }
+    async function approve(id) {
+      await fetch(API + '/v1/approvals/' + id + '/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ approvedBy: 'governance-ui' })
+      });
+      load();
+    }
+    async function deny(id) {
+      await fetch(API + '/v1/approvals/' + id + '/deny', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ reason: 'manual_deny' })
+      });
+      load();
+    }
+    async function setKill(enabled) {
+      const r = await fetch(API + '/admin/kill-switch', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled })
+      });
+      const j = await r.json();
+      document.getElementById('killStatus').textContent = ' killSwitch=' + j.killSwitch;
+    }
+    load();
+    setInterval(load, 8000);
+  </script>
+</body>
+</html>

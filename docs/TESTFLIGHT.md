@@ -1,5 +1,8 @@
 # TestFlight release checklist — WCS-Agentic
 
+**App Store Connect:** [TestFlight for WCS-Agentic](https://appstoreconnect.apple.com/teams/70c46c69-5d6d-438d-b300-31df2b93163a/apps/6769985809/testflight)  
+**Apple App ID:** `6769985809` · **Bundle ID:** `wcs.WCS-Agentic` · **Team:** `TM2WG7HH96`
+
 ## App Store Connect (one-time)
 
 1. Create app **WCS-Agentic** with bundle ID `wcs.WCS-Agentic` (team `TM2WG7HH96`).
