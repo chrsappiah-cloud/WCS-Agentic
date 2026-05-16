@@ -17,6 +17,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  swift-tests:
+    name: Swift package tests (API)
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: implementation-pack
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Swift test
+        run: swift test
+
   docker-build:
     name: Docker build (Vapor starter)
     runs-on: ubuntu-latest
