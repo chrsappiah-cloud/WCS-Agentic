@@ -64,7 +64,7 @@ struct MockBackendClient: APIServing {
                 ReportSection(
                     id: UUID(),
                     heading: "Executive overview",
-                    body: "Generated from the governed finance workspace for UI testing.",
+                    body: "Generated from the governed finance workspace for World Class Scholars review.",
                     evidenceRefs: financeSeed.evidence.map(\.fileName)
                 ),
             ],
