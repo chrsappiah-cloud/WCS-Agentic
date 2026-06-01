@@ -27,7 +27,7 @@ final class WCS_AgenticUITests: XCTestCase {
             return false
         }
 
-        if isLiveBackendTest {
+        if isLiveBackendTest && shouldRunLiveBackendTest {
             app.launchArguments = ["--livebackend"]
             app.launchEnvironment["WCS_API_BASE_URL"] = liveBackendBaseURL()
         } else {
@@ -39,6 +39,11 @@ final class WCS_AgenticUITests: XCTestCase {
 
     private var isLiveBackendTest: Bool {
         name.contains("testFinanceAILiveBackendCommandsGenerateGovernanceReport")
+    }
+
+    private var shouldRunLiveBackendTest: Bool {
+        ProcessInfo.processInfo.environment["WCS_RUN_LIVE_BACKEND_UI_TESTS"] == "1"
+            || FileManager.default.fileExists(atPath: "/tmp/wcs-live-backend-base-url")
     }
 
     private func liveBackendBaseURL() -> String {
@@ -169,6 +174,10 @@ final class WCS_AgenticUITests: XCTestCase {
 
     @MainActor
     func testFinanceAILiveBackendCommandsGenerateGovernanceReport() throws {
+        guard shouldRunLiveBackendTest else {
+            throw XCTSkip("Live backend UI test requires WCS_RUN_LIVE_BACKEND_UI_TESTS=1 or /tmp/wcs-live-backend-base-url.")
+        }
+
         tapTab(identifier: "tab.financeAI", label: "Finance AI")
         XCTAssertTrue(app.navigationBars["Overview"].waitForExistence(timeout: 12))
 
