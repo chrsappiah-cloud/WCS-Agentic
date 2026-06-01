@@ -27,7 +27,7 @@ final class WCS_AgenticUITests: XCTestCase {
             return false
         }
 
-        if isLiveBackendTest {
+        if isLiveBackendTest && shouldRunLiveBackendTest {
             app.launchArguments = ["--livebackend"]
             app.launchEnvironment["WCS_API_BASE_URL"] = liveBackendBaseURL()
         } else {
@@ -39,6 +39,11 @@ final class WCS_AgenticUITests: XCTestCase {
 
     private var isLiveBackendTest: Bool {
         name.contains("testFinanceAILiveBackendCommandsGenerateGovernanceReport")
+    }
+
+    private var shouldRunLiveBackendTest: Bool {
+        ProcessInfo.processInfo.environment["WCS_RUN_LIVE_BACKEND_UI_TESTS"] == "1"
+            || FileManager.default.fileExists(atPath: "/tmp/wcs-live-backend-base-url")
     }
 
     private func liveBackendBaseURL() -> String {
@@ -57,7 +62,7 @@ final class WCS_AgenticUITests: XCTestCase {
 
     /// Selects a tab by accessibility id or label, opening the More menu when tabs overflow.
     private func tapTab(identifier: String, label: String) {
-        if app.navigationBars[label].exists {
+        if tabSelectionMarker(for: label).exists {
             return
         }
 
@@ -69,22 +74,28 @@ final class WCS_AgenticUITests: XCTestCase {
         ]
         if let x = visibleTabX[label] {
             app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.96)).tap()
-            if app.navigationBars[label].waitForExistence(timeout: 5) {
+            if tabSelectionMarker(for: label).waitForExistence(timeout: 5) {
                 return
             }
         }
 
         let tabBar = app.tabBars.firstMatch
-        let byId = tabBar.buttons[identifier]
+        let byId = tabBar.buttons.matching(identifier: identifier).firstMatch
         if byId.waitForExistence(timeout: 3) {
             byId.tap()
-            return
+            if tabSelectionMarker(for: label).waitForExistence(timeout: 3) {
+                return
+            }
         }
 
-        let exactVisible = app.buttons[label]
+        let exactVisible = app.buttons.matching(
+            NSPredicate(format: "label == %@", label)
+        ).firstMatch
         if exactVisible.waitForExistence(timeout: 1) {
             exactVisible.tap()
-            return
+            if tabSelectionMarker(for: label).waitForExistence(timeout: 3) {
+                return
+            }
         }
 
         let byLabel = tabBar.buttons.matching(
@@ -92,7 +103,9 @@ final class WCS_AgenticUITests: XCTestCase {
         ).firstMatch
         if byLabel.waitForExistence(timeout: 3) {
             byLabel.tap()
-            return
+            if tabSelectionMarker(for: label).waitForExistence(timeout: 3) {
+                return
+            }
         }
         let more = tabBar.buttons["More"]
         if more.waitForExistence(timeout: 2) {
@@ -106,12 +119,27 @@ final class WCS_AgenticUITests: XCTestCase {
             ]
             for overflow in candidates where overflow.waitForExistence(timeout: 3) {
                 overflow.tap()
-                if app.navigationBars[label].waitForExistence(timeout: 3) {
+                if tabSelectionMarker(for: label).waitForExistence(timeout: 3) {
                     return
                 }
             }
         }
         XCTFail("Could not select tab '\(label)' (id: \(identifier))")
+    }
+
+    private func tabSelectionMarker(for label: String) -> XCUIElement {
+        switch label {
+        case "Programs":
+            return app.staticTexts["Scholar Workspace"]
+        case "Finance AI":
+            return app.staticTexts["Finance AI Console"]
+        case "Agents":
+            return app.navigationBars["Agents"]
+        case "Approvals":
+            return app.navigationBars["Approvals"]
+        default:
+            return app.navigationBars[label]
+        }
     }
 
     @MainActor
@@ -164,11 +192,15 @@ final class WCS_AgenticUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Reports"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["AI generated finance brief"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["Generated from the governed finance workspace for UI testing."].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Generated from the governed finance workspace for World Class Scholars review."].waitForExistence(timeout: 8))
     }
 
     @MainActor
     func testFinanceAILiveBackendCommandsGenerateGovernanceReport() throws {
+        guard shouldRunLiveBackendTest else {
+            throw XCTSkip("Live backend UI test requires WCS_RUN_LIVE_BACKEND_UI_TESTS=1 or /tmp/wcs-live-backend-base-url.")
+        }
+
         tapTab(identifier: "tab.financeAI", label: "Finance AI")
         XCTAssertTrue(app.navigationBars["Overview"].waitForExistence(timeout: 12))
 
@@ -204,6 +236,35 @@ final class WCS_AgenticUITests: XCTestCase {
         email.typeText("tester@worldclassscholars.test")
 
         XCTAssertTrue(app.buttons["agents.runButton"].waitForExistence(timeout: 8))
+    }
+
+    @MainActor
+    func testAppStoreScreenshotSet() throws {
+        tapTab(identifier: "tab.programs", label: "Programs")
+        XCTAssertTrue(app.staticTexts["Scholar Workspace"].waitForExistence(timeout: 8))
+        captureDistributionScreenshot("01-scholar-workspace")
+
+        tapTab(identifier: "tab.financeAI", label: "Finance AI")
+        XCTAssertTrue(app.staticTexts["Finance AI Console"].waitForExistence(timeout: 8))
+        captureDistributionScreenshot("02-finance-ai-console")
+
+        let generate = app.buttons["finance.generateReportButton"]
+        XCTAssertTrue(generate.waitForExistence(timeout: 8))
+        generate.tap()
+        XCTAssertTrue(app.navigationBars["Reports"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["AI generated finance brief"].waitForExistence(timeout: 8))
+        captureDistributionScreenshot("03-board-reporting")
+
+        tapTab(identifier: "tab.agents", label: "Agents")
+        XCTAssertTrue(app.navigationBars["Agents"].waitForExistence(timeout: 8))
+        captureDistributionScreenshot("04-agent-commands")
+    }
+
+    private func captureDistributionScreenshot(_ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor
