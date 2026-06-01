@@ -1,31 +1,11 @@
+# Deprecated: use ci.yml. Kept to avoid broken links; delegates to CI gate.
 name: iOS CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-concurrency:
-  group: ios-ci-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: Build and test (WCS-Agentic)
-    runs-on: macos-15
-    timeout-minutes: 60
+  redirect:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Show Xcode version
-        run: xcodebuild -version
-
-      - name: Run tests
-        env:
-          SKIP_UI_TESTS: "1"
-          WCS_SERIAL_TESTS: "1"
-        run: |
-          chmod +x scripts/run-ios-tests.sh
-          ./scripts/run-ios-tests.sh
+      - run: echo "Use workflow 'CI' (.github/workflows/ci.yml) for all checks."

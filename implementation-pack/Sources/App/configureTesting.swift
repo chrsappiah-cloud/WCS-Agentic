@@ -12,6 +12,7 @@ enum TestingConfiguration {
         app.databases.use(.sqlite(.memory), as: .sqlite)
         app.migrations.add(CreateParticipantMigration())
         app.migrations.add(CreateWorkflowRunMigration())
+        app.migrations.add(CreateFinanceSchemaMigration())
 
         let jwtSecret = "test-secret"
         app.jwt.signers.use(.hs256(key: jwtSecret), kid: "wcs")

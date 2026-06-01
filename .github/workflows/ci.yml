@@ -1,0 +1,102 @@
+# Primary CI — required gate for main. All jobs must pass before merge.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testflight-preflight:
+    name: TestFlight preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          chmod +x scripts/validate-testflight.sh
+          ./scripts/validate-testflight.sh
+
+  ios:
+    name: iOS XCTest (unit + UI)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - name: Run all XCTest targets
+        env:
+          WCS_SERIAL_TESTS: "1"
+        run: |
+          chmod +x scripts/run-ios-tests.sh
+          ./scripts/run-ios-tests.sh
+
+  vapor:
+    name: Vapor API
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: implementation-pack
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  orchestrator:
+    name: Node orchestrator
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: platform/orchestrator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci 2>/dev/null || npm install
+      - run: npm test
+
+  python-worker:
+    name: Python worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: platform/agents/onboarding-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -c "import app; assert app.app"
+
+  ci-gate:
+    name: CI gate (required)
+    runs-on: ubuntu-latest
+    needs: [testflight-preflight, ios, vapor, orchestrator, python-worker]
+    if: always()
+    steps:
+      - name: Enforce all checks passed
+        run: |
+          check() {
+            local name="$1" result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "FAILED: $name ($result)"
+              exit 1
+            fi
+            echo "OK: $name"
+          }
+          check "testflight-preflight" "${{ needs.testflight-preflight.result }}"
+          check "ios" "${{ needs.ios.result }}"
+          check "vapor" "${{ needs.vapor.result }}"
+          check "orchestrator" "${{ needs.orchestrator.result }}"
+          check "python-worker" "${{ needs.python-worker.result }}"
+          echo "All CI checks passed."

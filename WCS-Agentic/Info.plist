@@ -17,5 +17,7 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>World Class Scholars connects to the local development backend during live device testing.</string>
 </dict>
 </plist>

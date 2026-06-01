@@ -2,6 +2,8 @@ import Fluent
 import Vapor
 
 func routes(_ app: Application) throws {
+    try financeRoutes(app)
+
     app.post("participants") { req async throws -> Participant in
         let input = try req.content.decode(CreateParticipant.self)
         let p = Participant(email: input.email, fullName: input.fullName)

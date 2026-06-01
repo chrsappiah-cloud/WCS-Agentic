@@ -1,16 +1,8 @@
 name: Backend CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "implementation-pack/**"
-      - ".github/workflows/backend-ci.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - "implementation-pack/**"
-      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+  # Path-scoped runs superseded by ci.yml on main; use dispatch for backend-only debugging.
 
 concurrency:
   group: backend-ci-${{ github.ref }}

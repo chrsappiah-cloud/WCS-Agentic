@@ -22,6 +22,12 @@ struct AppShellView: View {
     var body: some View {
         TabView {
             NavigationStack {
+                FinanceAgentConsoleView(api: api)
+            }
+            .tabItem { Label("Finance AI", systemImage: "building.2.crop.circle") }
+            .accessibilityIdentifier("tab.financeAI")
+
+            NavigationStack {
                 ProgramsHomeView(
                     viewModel: programsVM,
                     repository: WorkflowRepository(modelContext: modelContext)

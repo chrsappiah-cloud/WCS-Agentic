@@ -20,6 +20,8 @@ cd /Applications/WCS-Agentic
 ./scripts/prepare-testflight.sh    # archive + upload
 ```
 
+**CI/CD:** GitHub Actions workflow **CI** runs on every push/PR; **CD TestFlight** on manual dispatch or `v*` tag. Enable branch protection on **CI gate (required)** — see [.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md).
+
 ## App Store Connect
 
 - **TestFlight:** https://appstoreconnect.apple.com/teams/70c46c69-5d6d-438d-b300-31df2b93163a/apps/6769985809/testflight

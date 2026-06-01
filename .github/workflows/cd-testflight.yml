@@ -1,0 +1,61 @@
+# CD — production TestFlight upload (manual or version tag).
+name: CD TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: Skip test suite (not recommended)
+        required: false
+        default: "false"
+        type: boolean
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-*"
+
+concurrency:
+  group: cd-testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & upload to App Store Connect
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight
+        run: |
+          chmod +x scripts/validate-testflight.sh scripts/prepare-testflight.sh scripts/run-all-tests.sh
+          ./scripts/validate-testflight.sh
+
+      - name: Run all tests
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true'
+        run: ./scripts/run-all-tests.sh
+
+      - name: Archive & upload TestFlight build
+        env:
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+        run: |
+          ./scripts/prepare-testflight.sh --skip-tests
+
+      - name: Upload IPA artifact (backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WCS-Agentic-TestFlight-ipa
+          path: build/TestFlightExport/*.ipa
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Release summary
+        if: success()
+        run: |
+          VER=$(grep -m1 MARKETING_VERSION WCS-Agentic.xcodeproj/project.pbxproj | sed 's/.*= \(.*\);/\1/')
+          BUILD=$(grep -m1 CURRENT_PROJECT_VERSION WCS-Agentic.xcodeproj/project.pbxproj | sed 's/.*= \(.*\);/\1/')
+          echo "## TestFlight upload" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version **$VER ($BUILD)**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- [App Store Connect TestFlight](https://appstoreconnect.apple.com/teams/70c46c69-5d6d-438d-b300-31df2b93163a/apps/6769985809/testflight)" >> "$GITHUB_STEP_SUMMARY"

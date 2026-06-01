@@ -50,4 +50,5 @@ Use for each build before promoting to external testers.
 
 | Build | Tester | Date | Result |
 |-------|--------|------|--------|
-| 1.1 (5) | | | |
+| 1.1 (6) | | | CI/CD enforced · full XCTest green |
+| 1.1 (5) | | | Orchestrator + Approvals |

@@ -62,4 +62,73 @@ final class AppAPITests: XCTestCase {
             }
         )
     }
+
+    func testFinanceSnapshotSeedsDatabase() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+
+        try TestingConfiguration.configure(app)
+        try app.autoMigrate().wait()
+
+        try app.test(.GET, "finance/snapshot", afterResponse: { res in
+            XCTAssertEqual(res.status, .ok)
+            let snapshot = try res.content.decode(FinanceWorkspaceSnapshotDTO.self)
+            XCTAssertFalse(snapshot.records.isEmpty)
+            XCTAssertFalse(snapshot.complianceTasks.isEmpty)
+            XCTAssertFalse(snapshot.policyPacks.isEmpty)
+        })
+    }
+
+    func testFinanceAccountingStatusCommandPersistsAndAudits() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+
+        try TestingConfiguration.configure(app)
+        try app.autoMigrate().wait()
+
+        var recordID: UUID?
+        try app.test(.GET, "finance/snapshot", afterResponse: { res in
+            let snapshot = try res.content.decode(FinanceWorkspaceSnapshotDTO.self)
+            recordID = snapshot.records.first?.id
+        })
+
+        let id = try XCTUnwrap(recordID)
+        try app.test(
+            .POST,
+            "finance/accounting-records/\(id.uuidString)/status",
+            headers: HTTPHeaders([("Content-Type", "application/json")]),
+            beforeRequest: { req in
+                try req.content.encode(FinanceStatusRequest(status: "approved", actor: "unit@test.wcs"))
+            },
+            afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let snapshot = try res.content.decode(FinanceWorkspaceSnapshotDTO.self)
+                XCTAssertEqual(snapshot.records.first { $0.id == id }?.status, "approved")
+                XCTAssertEqual(snapshot.auditTrail.first?.actor, "unit@test.wcs")
+            }
+        )
+    }
+
+    func testFinanceReportGenerationPersistsReport() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+
+        try TestingConfiguration.configure(app)
+        try app.autoMigrate().wait()
+
+        try app.test(
+            .POST,
+            "finance/reports/generate",
+            headers: HTTPHeaders([("Content-Type", "application/json")]),
+            beforeRequest: { req in
+                try req.content.encode(GenerateFinanceReportRequest(period: "June 2026", actor: "unit@test.wcs"))
+            },
+            afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let generated = try res.content.decode(GeneratedReportResponseDTO.self)
+                XCTAssertEqual(generated.report.period, "June 2026")
+                XCTAssertEqual(generated.auditEvent.action, "Generated report")
+            }
+        )
+    }
 }

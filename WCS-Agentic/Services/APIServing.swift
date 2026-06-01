@@ -11,6 +11,11 @@ protocol APIServing: Sendable {
     func createParticipant(email: String, fullName: String) async throws -> UUID
     func uploadIdentity(participantID: UUID, documentURL: String) async throws
     func approveWorkflow(workflowID: UUID, approvedBy: String) async throws
+    func fetchFinanceSnapshot() async throws -> FinanceWorkspaceSnapshot
+    func updateAccountingRecordStatus(id: UUID, status: RecordStatus, actor: String) async throws -> FinanceWorkspaceSnapshot
+    func completeComplianceTask(id: UUID, actor: String) async throws -> FinanceWorkspaceSnapshot
+    func captureGovernanceApprovalNote(id: UUID, actor: String) async throws -> FinanceWorkspaceSnapshot
+    func generateFinanceReport(period: String, actor: String) async throws -> GeneratedReportResponse
 }
 
 enum APIError: Error, Equatable {
