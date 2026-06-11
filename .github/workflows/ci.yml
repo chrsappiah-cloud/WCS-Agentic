@@ -15,7 +15,7 @@ concurrency:
 jobs:
   testflight-preflight:
     name: TestFlight preflight
-    runs-on: ubuntu-latest
+    runs-on: macos-15
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

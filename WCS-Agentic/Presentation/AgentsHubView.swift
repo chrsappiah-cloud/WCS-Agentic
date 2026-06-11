@@ -219,7 +219,7 @@ struct AgentsHubView: View {
             return emailOk
         case .certificate, .concierge:
             return selectedParticipantId != nil
-        case .support, .campaign:
+        case .support, .campaign, .legalDeepSeek:
             return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }

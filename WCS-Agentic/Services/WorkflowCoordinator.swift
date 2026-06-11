@@ -113,7 +113,7 @@ final class WorkflowCoordinator: ObservableObject {
         case .concierge:
             guard let participantId else { throw PlatformError.decoding }
             response = try await platform.startConcierge(participantId: participantId, role: role)
-        case .support, .campaign:
+        case .support, .campaign, .legalDeepSeek:
             throw PlatformError.badStatus(501)
         }
 
@@ -144,6 +144,7 @@ private extension AgentKind {
         case .concierge: "concierge"
         case .support: "support"
         case .campaign: "campaign"
+        case .legalDeepSeek: "legal_deepseek"
         }
     }
 }

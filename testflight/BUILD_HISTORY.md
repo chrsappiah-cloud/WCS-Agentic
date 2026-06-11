@@ -6,6 +6,7 @@
 | 1.1 | 5 | 2026-05-16 | `4efe84a` | TestFlight folder, validate script, QA checklist |
 | 1.1 | 5 | 2026-05-16 | `4e78986` | XCTest fixes, build-install-test-ios script |
 | 1.1 | 6 | 2026-05-16 | (this release) | Enforced CI/CD gate, full XCTest in CI, production upload |
+| 1.1 | 7 | 2026-06-11 | (this release) | Legal DeepSeek sub-agent, platform blueprint monitor, post-launch engines, physical-device e2e green |
 
 **Production identifiers**
 

@@ -36,7 +36,7 @@ grep -q 'WCSOrchestratorBaseURL' "$ROOT/WCS-Agentic/Info.plist" \
 command -v xcodebuild >/dev/null || fail "xcodebuild not found"
 
 echo "==> Scheme resolves"
-xcodebuild -scheme WCS-Agentic -showBuildSettings -configuration Release 2>/dev/null \
+xcodebuild -project "$ROOT/WCS-Agentic.xcodeproj" -scheme WCS-Agentic -showBuildSettings -configuration Release 2>/dev/null \
   | grep -E 'PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|MARKETING_VERSION|CURRENT_PROJECT_VERSION' \
   | head -6
 
