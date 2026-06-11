@@ -12,6 +12,7 @@ enum AgentKind: String, Codable, CaseIterable, Sendable {
     case certificate = "Certificate Prep"
     case support = "Support Triage"
     case campaign = "Campaign Draft"
+    case legalDeepSeek = "Legal DeepSeek"
 
     var systemImage: String {
         switch self {
@@ -20,6 +21,7 @@ enum AgentKind: String, Codable, CaseIterable, Sendable {
         case .support: "lifepreserver"
         case .certificate: "checkmark.seal"
         case .campaign: "megaphone"
+        case .legalDeepSeek: "building.columns"
         }
     }
 
@@ -35,6 +37,8 @@ enum AgentKind: String, Codable, CaseIterable, Sendable {
             "Deterministic prep → dual-control approval queue; never auto-issue."
         case .campaign:
             "Draft assets with citations; queue for editorial review (local supervised draft)."
+        case .legalDeepSeek:
+            "DeepSeek-style legal reasoning for contracts, litigation, compliance, writing, intake, and marketing. Lawyer review always required."
         }
     }
 
@@ -42,7 +46,7 @@ enum AgentKind: String, Codable, CaseIterable, Sendable {
     var usesPlatformOrchestrator: Bool {
         switch self {
         case .onboarding, .certificate, .concierge: true
-        case .support, .campaign: false
+        case .support, .campaign, .legalDeepSeek: false
         }
     }
 }

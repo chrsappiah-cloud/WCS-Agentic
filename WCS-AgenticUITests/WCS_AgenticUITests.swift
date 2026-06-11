@@ -28,10 +28,10 @@ final class WCS_AgenticUITests: XCTestCase {
         }
 
         if isLiveBackendTest && shouldRunLiveBackendTest {
-            app.launchArguments = ["--livebackend"]
+            app.launchArguments = ["--livebackend", "--start-finance"]
             app.launchEnvironment["WCS_API_BASE_URL"] = liveBackendBaseURL()
         } else {
-            app.launchArguments = ["--uitesting"]
+            app.launchArguments = launchArguments(for: name)
         }
         app.launch()
         app.tap()
@@ -60,17 +60,72 @@ final class WCS_AgenticUITests: XCTestCase {
         return "http://192.168.20.217:8081"
     }
 
+    private func launchArguments(for testName: String) -> [String] {
+        var arguments = ["--uitesting"]
+        if testName.contains("testBlueprintPerformanceMonitorLoadsPortfolioSignals") {
+            arguments.append(contentsOf: ["--start-blueprint", "--start-blueprint-performance"])
+        } else if testName.contains("LegalDeepSeek") {
+            arguments.append("--start-legal")
+        } else if testName.contains("ProgramsTab") || testName.contains("AppStoreScreenshotSet") {
+            arguments.append("--start-programs")
+        } else if testName.contains("Agents") {
+            arguments.append("--start-agents")
+        } else if testName.contains("FinanceAI") {
+            arguments.append("--start-finance")
+        }
+        return arguments
+    }
+
+    private func launchArgument(forTabLabel label: String) -> String? {
+        switch label {
+        case "Finance AI":
+            return "--start-finance"
+        case "Legal AI":
+            return "--start-legal"
+        case "Programs":
+            return "--start-programs"
+        case "Agents":
+            return "--start-agents"
+        case "Blueprint":
+            return "--start-blueprint"
+        case "Approvals":
+            return "--start-approvals"
+        default:
+            return nil
+        }
+    }
+
+    private func relaunch(startingAt label: String) {
+        guard let tabArgument = launchArgument(forTabLabel: label) else {
+            return
+        }
+        var arguments = ["--uitesting", tabArgument]
+        if label == "Blueprint" && name.contains("testBlueprintPerformanceMonitorLoadsPortfolioSignals") {
+            arguments.append("--start-blueprint-performance")
+        }
+        app.terminate()
+        app.launchArguments = arguments
+        app.launch()
+        app.tap()
+    }
+
     /// Selects a tab by accessibility id or label, opening the More menu when tabs overflow.
     private func tapTab(identifier: String, label: String) {
-        if tabSelectionMarker(for: label).exists {
+        if tabSelectionMarker(for: label).waitForExistence(timeout: 2) {
+            return
+        }
+
+        relaunch(startingAt: label)
+        if tabSelectionMarker(for: label).waitForExistence(timeout: 8) {
             return
         }
 
         let visibleTabX: [String: CGFloat] = [
             "Finance AI": 0.12,
-            "Programs": 0.32,
-            "Agents": 0.52,
-            "Approvals": 0.72,
+            "Legal AI": 0.32,
+            "Programs": 0.52,
+            "Agents": 0.72,
+            "Blueprint": 0.92,
         ]
         if let x = visibleTabX[label] {
             app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.96)).tap()
@@ -133,13 +188,35 @@ final class WCS_AgenticUITests: XCTestCase {
             return app.staticTexts["Scholar Workspace"]
         case "Finance AI":
             return app.staticTexts["Finance AI Console"]
+        case "Legal AI":
+            return app.staticTexts["Legal DeepSeek Sub-Agent"]
         case "Agents":
             return app.navigationBars["Agents"]
+        case "Blueprint":
+            return app.staticTexts["WCS Platform Blueprint"]
         case "Approvals":
             return app.navigationBars["Approvals"]
         default:
             return app.navigationBars[label]
         }
+    }
+
+    private func scrollToElement(_ element: XCUIElement, swipes: Int = 8, timeout: TimeInterval = 1) -> Bool {
+        if element.waitForExistence(timeout: timeout) {
+            return true
+        }
+
+        for _ in 0..<swipes {
+            app.swipeUp()
+            if element.waitForExistence(timeout: timeout) {
+                return true
+            }
+        }
+        return element.exists
+    }
+
+    private func scrollToStaticText(_ text: String, swipes: Int = 8, timeout: TimeInterval = 1) -> Bool {
+        scrollToElement(app.staticTexts[text], swipes: swipes, timeout: timeout)
     }
 
     @MainActor
@@ -174,6 +251,30 @@ final class WCS_AgenticUITests: XCTestCase {
         attachment.name = "Finance AI Overview"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    @MainActor
+    func testLegalDeepSeekOverviewLoadsPromptMetricsAndSafeguards() throws {
+        tapTab(identifier: "tab.legalAI", label: "Legal AI")
+
+        XCTAssertTrue(app.staticTexts["Legal DeepSeek Sub-Agent"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Matters"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Review gates"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["High risks"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Prompt packs"].waitForExistence(timeout: 8))
+    }
+
+    @MainActor
+    func testBlueprintPerformanceMonitorLoadsPortfolioSignals() throws {
+        tapTab(identifier: "tab.blueprint", label: "Blueprint")
+
+        XCTAssertTrue(app.staticTexts["WCS Platform Blueprint"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Post-launch portfolio monitor"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Zero-rating apps"].waitForExistence(timeout: 8))
+        XCTAssertTrue(scrollToStaticText("Monitoring engine outputs"))
+        XCTAssertTrue(scrollToStaticText("Installed monitoring engines"))
+        XCTAssertTrue(scrollToStaticText("Weekly scorecard engine"))
+        XCTAssertTrue(scrollToStaticText("AgedCare Monitor", swipes: 10))
     }
 
     @MainActor

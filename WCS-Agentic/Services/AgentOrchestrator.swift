@@ -78,7 +78,11 @@ final class AgentOrchestrator {
     }
 
     private func supervisedResponse(agent: AgentKind, prompt: String) -> String {
-        """
+        if agent == .legalDeepSeek {
+            return LegalDeepSeekEngine.supervisedAgentSummary(for: prompt)
+        }
+
+        return """
         [\(agent.rawValue)] Supervised draft (human review required)
 
         Prompt understood: \(prompt.prefix(200))\(prompt.count > 200 ? "…" : "")
