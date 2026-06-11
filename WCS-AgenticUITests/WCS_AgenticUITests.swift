@@ -90,6 +90,14 @@ final class WCS_AgenticUITests: XCTestCase {
             return "--start-blueprint"
         case "Approvals":
             return "--start-approvals"
+        case "Monitor":
+            return "--start-monitor"
+        case "API":
+            return "--start-api"
+        case "Account":
+            return "--start-account"
+        case "Admin":
+            return "--start-admin"
         default:
             return nil
         }

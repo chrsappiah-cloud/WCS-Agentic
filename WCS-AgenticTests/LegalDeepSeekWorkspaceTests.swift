@@ -85,7 +85,10 @@ final class LegalDeepSeekWorkspaceTests: XCTestCase {
     }
 
     func testInvocationContainsMatterEvidenceAndOutputContract() {
-        let matter = workspace.matters.first!
+        guard let matter = workspace.matters.first else {
+            XCTFail("Expected at least one matter in workspace")
+            return
+        }
         let invocation = workspace.buildInvocation(for: matter)
 
         XCTAssertTrue(invocation.system.contains("Legal DeepSeek"))
